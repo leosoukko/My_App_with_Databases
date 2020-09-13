@@ -1,0 +1,4 @@
+https://www.ft.com/sitemaps/news.xml
+https://www.marketwatch.com/mw_news_sitemap.xml
+https://www.reuters.com/sitemap_news_index1.xml
+https://www.reuters.com/sitemap_news_index2.xml
