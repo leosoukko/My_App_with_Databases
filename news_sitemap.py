@@ -30,7 +30,7 @@ class get_sitemap_data:
     def connect_to_db(self):
         self.mongodb_connection=mongodb_connection.connect_to_mongodb(self.db_config_file)
         self.mongodb_connection.connect_to_db()
-        print('Database collection count when connecting:',self.mongodb_connection.db[self.collection_name].count())
+        print('Database collection',self.collection_name,'count when connecting:',self.mongodb_connection.db[self.collection_name].count())
 
     # get articles on the sitemap xml
     def get_articles(self):
@@ -80,6 +80,7 @@ class get_sitemap_data:
         self.connect_to_db()
         # get all articles in the sitemap
         self.get_articles()
+        print(self.url)
         # for each article
         for i,article in enumerate(self.articles):
             # print every 100 iterations
@@ -103,4 +104,5 @@ class get_sitemap_data:
 
                 self.update_data(date,link,title,tickers)
 
-        print('Database collection count after connecting:',self.mongodb_connection.db[self.collection_name].count())
+        print('Database collection',self.collection_name,'count after connecting:',self.mongodb_connection.db[self.collection_name].count())
+        print('')

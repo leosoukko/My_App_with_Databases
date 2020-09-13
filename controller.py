@@ -18,7 +18,6 @@ class controller:
         # get the sitemap URLS
         self.get_sitemaps()
         for url in self.URLS:
-            print(url)
             # MW has different tags than other sites
             if url=='https://www.marketwatch.com/mw_news_sitemap.xml':
                 sitemap_obj=news_sitemap.get_sitemap_data(url,['update','says','us'],'n','database_config.json')

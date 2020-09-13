@@ -1,5 +1,4 @@
 from pymongo import MongoClient
-from pprint import pprint
 
 import json
 
@@ -15,5 +14,8 @@ class connect_to_mongodb:
         # read conf file
         self.read_config_file()
         # connect to db
-        self.client=MongoClient(self.config['URI'])
+        self.client=MongoClient(self.config['MongoDB']['URI'])
         self.db=self.client.news
+        print('Connected to MongoDB')
+        print('Current collections:',self.db.list_collection_names())
+        print('')
