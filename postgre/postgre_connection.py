@@ -21,10 +21,12 @@ class connect_to_postgre:
         host=self.config['PostgreSQL']['host']
         port=self.config['PostgreSQL']['port']
         self.engine=create_engine("postgresql+psycopg2://{}:{}@{}:{}/{}".format(user,password,host,port,database))
-        # test query
+        # get tables and test the connection
         query="""SELECT table_name
         FROM information_schema.tables
         WHERE table_schema='public'
         AND table_type='BASE TABLE';
         """
-        print('Current tables:',self.engine.execute(query).fetchall())
+        tables=self.engine.execute(query).fetchall()
+        self.tables=[tabl[0] for tabl in tables]
+        print('Current tables:',self.tables)
