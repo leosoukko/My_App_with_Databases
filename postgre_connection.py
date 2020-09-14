@@ -1,4 +1,5 @@
 import psycopg2
+from sqlalchemy import create_engine
 
 import json
 
@@ -14,23 +15,16 @@ class connect_to_postgre:
         # read conf file
         self.read_config_file()
         # connect to db
-        self.conn=psycopg2.connect(database=self.config['PostgreSQL']['dbName'],
-                                    user=self.config['PostgreSQL']['username'],
-                                    password=self.config['PostgreSQL']['password'])
-        #print some info
-        cur = self.conn.cursor()
-        print('Connected to',self.config['PostgreSQL']['dbName'])
+        user=self.config['PostgreSQL']['username']
+        database=self.config['PostgreSQL']['dbName']
+        password=self.config['PostgreSQL']['password']
+        host=self.config['PostgreSQL']['host']
+        port=self.config['PostgreSQL']['port']
+        self.engine=create_engine("postgresql+psycopg2://{}:{}@{}:{}/{}".format(user,password,host,port,database))
+        # test query
         query="""SELECT table_name
         FROM information_schema.tables
         WHERE table_schema='public'
         AND table_type='BASE TABLE';
         """
-        cur.execute(query)
-        # display the PostgreSQL database server version
-        result = cur.fetchone()
-        print('Current tables:',result)
-        cur.close()
-
-psql=connect_to_postgre('database_config.json')
-psql.connect_to_db()
-        
+        print('Current tables:',self.engine.execute(query).fetchall())
