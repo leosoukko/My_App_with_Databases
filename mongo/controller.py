@@ -20,9 +20,9 @@ class controller:
         for url in self.URLS:
             # MW has different tags than other sites
             if url=='https://www.marketwatch.com/mw_news_sitemap.xml':
-                sitemap_obj=news_sitemap.get_sitemap_data(url,['update','says','us'],'n','database_config.json')
+                sitemap_obj=news_sitemap.get_sitemap_data(url,['update','says','us'],'n','../config/database_config.json')
             else:
-                sitemap_obj=news_sitemap.get_sitemap_data(url,['update','says','us'],'news','database_config.json')
+                sitemap_obj=news_sitemap.get_sitemap_data(url,['update','says','us'],'news','../config/database_config.json')
             # get and update data
             sitemap_obj.get_and_update_data()
 
