@@ -46,6 +46,6 @@ Scripts in this folder are run by "python controller.py"
 **TODO:**
 Also loop through each link and scrape the text.
 
-![Image of Mongo](../assets/mongo_example.png)
+![Image of Mongo](assets/mongo_example.png)
 
-![Image of Postgre](../assets/postgre_example.png)
+![Image of Postgre](assets/postgre_example.png)
