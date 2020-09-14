@@ -33,7 +33,7 @@ class london_stock_exchange:
                 self.df['tradeTime']=pd.to_datetime(self.df['tradeTime'])
                 # change GBX to GBP
                 self.df.loc[(self.df['currency']=='GBX'),'price']=self.df.loc[(self.df['currency']=='GBX'),'price']/100.0
-                self.df[self.df['currency']=='GBX'].loc[:,'currency']='GBP'
+                self.df.loc[(self.df['currency']=='GBX'),'currency']='GBP'
                 # drop column that can be calculated from other cols
                 self.df=self.df.drop(columns=['tradeValue'])
 

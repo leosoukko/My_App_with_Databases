@@ -1,15 +1,17 @@
 This repo is my test to use MongoDB and PostgreSQL with Python.
 
-### Prerequirements
+### Prerequisite
 
-Install MongoDB and PostgreSQL.
+Install MongoDB and PostgreSQL.<br>
 Install requirements.txt packages.
 
-Create a "config" folder and a "database_config.json" file in it. This file has all the configurations needed to connect to the databases. It currently as:
+Create a "config" folder and a "database_config.json" file in it. This file has all the configurations needed to connect to the databases. It currently as:<br>
+```json
 {
     "MongoDB":{"URI":"some_value"},
     "PostgreSQL":{"dbName":"some_value","username":"some_value","password":"some_value","host":"some_value","port":"some_value"}
 }
+```
 
 ### File Descriptions
 
@@ -41,5 +43,9 @@ Scripts in this folder are run by "python london_stock_data.py"
 
 Scripts in this folder are run by "python controller.py"
 
-TODO:
+**TODO:**
 Also loop through each link and scrape the text.
+
+![Image of Mongo](../assets/mongo_example.png)
+
+![Image of Postgre](../assets/postgre_example.png)
