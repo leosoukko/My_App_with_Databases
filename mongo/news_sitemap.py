@@ -14,23 +14,19 @@ nltk.download('stopwords')
 print('')
 
 class get_sitemap_data:
-    def __init__(self,URL,removableWords,tag,db_config_file):
-        # for db connection
-        self.db_config_file=db_config_file
+    def __init__(self,URL,removableWords,tag,db_connection):
+        # db connection
+        self.mongodb_connection=db_connection
         # the url of recent news sitemap xml
         self.url=URL
         # mongo db collection name
         self.collection_name=self.url.split('/')[2].split('.')[1]
+        print('Database collection',self.collection_name,'count when connecting:',self.mongodb_connection.db[self.collection_name].count())
         # removable words
         self.removableWords=Counter(removableWords)
         self.stopwords_dict = Counter(stopwords.words())#counter makes the script 100 times faster, it is crazy
         # not all sitemaps have identical tags
         self.tag=tag
-
-    def connect_to_db(self):
-        self.mongodb_connection=mongodb_connection.connect_to_mongodb(self.db_config_file)
-        self.mongodb_connection.connect_to_db()
-        print('Database collection',self.collection_name,'count when connecting:',self.mongodb_connection.db[self.collection_name].count())
 
     # get articles on the sitemap xml
     def get_articles(self):
@@ -38,7 +34,7 @@ class get_sitemap_data:
         if self.site.ok:
             self.soup=bs(self.site.text,'html.parser')
             self.articles=self.soup.find_all('url')
-            print('Fetched xml')
+            print('Fetched xml',self.url)
         else:
             print('Failed to fetch xml')
             exit()
@@ -76,11 +72,8 @@ class get_sitemap_data:
         self.mongodb_connection.db[self.collection_name].insert_one({"date":date,"link":link,"title":title,"tickers":tickers})
 
     def get_and_update_data(self):
-        # connect to the database
-        self.connect_to_db()
         # get all articles in the sitemap
         self.get_articles()
-        print(self.url)
         # for each article
         for i,article in enumerate(self.articles):
             # print every 100 iterations

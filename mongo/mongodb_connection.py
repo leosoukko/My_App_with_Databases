@@ -3,7 +3,8 @@ from pymongo import MongoClient
 import json
 
 class connect_to_mongodb:
-    def __init__(self,config_file):
+    def __init__(self,config_file,database_name):
+        self.db_name=database_name
         self.config_file=config_file
 
     def read_config_file(self):
@@ -15,7 +16,7 @@ class connect_to_mongodb:
         self.read_config_file()
         # connect to db
         self.client=MongoClient(self.config['MongoDB']['URI'])
-        self.db=self.client.news
+        self.db=self.client[self.db_name]
         print('Connected to MongoDB')
         print('Current collections:',self.db.list_collection_names())
         print('')
