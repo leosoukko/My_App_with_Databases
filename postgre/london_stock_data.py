@@ -36,6 +36,10 @@ class london_stock_exchange:
                 self.df.loc[(self.df['currency']=='GBX'),'currency']='GBP'
                 # drop column that can be calculated from other cols
                 self.df=self.df.drop(columns=['tradeValue'])
+                # group observations that are otherwise duplicates but have just different volume
+                self.df=self.df.groupby(['tradeTime','currency','price','type','micCode','tradeType'],as_index=False)['volume'].sum()
+                self.df=self.df.drop_duplicates(subset=['tradeTime','currency','price','type','micCode','tradeType'])
+                self.df=self.df.sort_values(by='tradeTime',ascending=False)
 
                 print('Fetched',stock,': df size',self.df.shape)
                 return True
