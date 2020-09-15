@@ -1,0 +1,25 @@
+body {
+    font-family: sans-serif;
+    margin:20px;
+}
+
+.allText{
+    font-size:14px;
+    margin-left:30px;
+    margin-top:5px;
+    margin-bottom:5px;
+}
+
+.dropdown{
+    margin-left:30px;
+    margin-top:5px;
+    margin-bottom:5px;
+    width:10%;
+}
+
+.writable_input{
+    margin-left:30px;
+    margin-top:5px;
+    margin-bottom:5px;
+    width:50px;
+}

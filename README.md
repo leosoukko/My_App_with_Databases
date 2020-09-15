@@ -15,6 +15,13 @@ Create a "config" folder and a "database_config.json" file in it. This file has 
 
 ### File Descriptions
 
+**app folder**
+- Unfinished
+- Will be used for visualization
+
+**assets folder**
+- Has images for readme.md and css file for visualization
+
 **postgre folder**
 - This folder has three files:
     - postgre_connection.py
