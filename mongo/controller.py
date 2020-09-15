@@ -8,14 +8,13 @@ import sys
 import json
 
 class controller:
-    def __init__(self,sitemap_file,config_file,db_name):
+    def __init__(self,sitemap_file,config_file):
         self.db_config_file=config_file
-        self.db_name=db_name
         self.sitemap_file=sitemap_file
         self.data={}
     
     def connect_to_db(self):
-        self.mongodb_connection=mongodb_connection.connect_to_mongodb(self.db_config_file,self.db_name)
+        self.mongodb_connection=mongodb_connection.connect_to_mongodb(self.db_config_file)
         self.mongodb_connection.connect_to_db()
 
     def get_sitemaps(self):
@@ -36,5 +35,5 @@ class controller:
             # get and update data
             sitemap_obj.get_and_update_data()
 
-cntrl=controller('../mongo/sitemaps.txt','../config/database_config.json','news')
+cntrl=controller('../mongo/sitemaps.txt','../config/database_config.json')
 cntrl.fetch_data()

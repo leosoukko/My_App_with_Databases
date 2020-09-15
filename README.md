@@ -8,7 +8,7 @@ Install requirements.txt packages.
 Create a "config" folder and a "database_config.json" file in it. This file has all the configurations needed to connect to the databases. It currently as:<br>
 ```json
 {
-    "MongoDB":{"URI":"some_value"},
+    "MongoDB":{"URI":"some_value","dbName":"some_value"},
     "PostgreSQL":{"dbName":"some_value","username":"some_value","password":"some_value","host":"some_value","port":"some_value"}
 }
 ```

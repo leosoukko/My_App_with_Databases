@@ -17,19 +17,26 @@ import pandas as pd
 import random
 
 ############################################## INITIALIZATION #############################################
-# connect to postgre
-psql=postgre_connection.connect_to_postgre('../config/database_config.json')
-psql.connect_to_db()
-# get columns (assumed that they are the same for all tables, which is currently true)
-query="""SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='AZN';"""
-res=psql.engine.execute(query).fetchall()
-psql_columns=[col[0] for col in res]
+class create_app:
+    def __init__(self,config_file):
+        self.config_file=config_file
 
-mongo=mongodb_connection.connect_to_mongodb('../config/database_config.json',database_name='news')
-mongo.connect_to_db()
+    def connect_to_db(self):
+        # connect to postgre
+        self.psql=postgre_connection.connect_to_postgre(self.config_file)
+        self.psql.connect_to_db()
+        # get columns (assumed that they are the same for all tables, which is currently true)
+        query="""SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='{}';""".format(psql.tables[0])
+        res=psql.engine.execute(query).fetchall()
+        self.psql_columns=[col[0] for col in res]
+        # connect to mongo
+        self.mongo=mongodb_connection.connect_to_mongodb(self.config_file,database_name='news')
+        self.mongo.connect_to_db()
+
+################################################ LAYOUT #############################################
+def create_layout()
 
 ################################################# APP #############################################
-# the actual app
 app = dash.Dash(__name__,title='MyApp')
 ################################################ LAYOUT #############################################
 app.layout = html.Div(children=[
@@ -58,30 +65,27 @@ app.layout = html.Div(children=[
     className='dropdown',
     clearable=False
     ),
-    html.Div(id='london-stock-dropdown-output'),
-    # choose y-axis data shown
-    html.Div('Filter data based on',className='allText'),
-    dcc.Dropdown(
-    id='london-asset-filter-dropdown',
-    options=[{'label': i, 'value': i} for i in psql_columns],
-    value=psql_columns[0],
-    className='dropdown',
-    clearable=True,
-    multi=True
-    ),
-    html.Div(id='london-asset-filter-dropdown'),
-    # choose color data
-    html.Div('Choose attribute shown as color',className='allText'),
-    dcc.Dropdown(
-    id='london-stock-color-dropdown',
-    options=[{'label': i, 'value': i} for i in lon_cols],
-    value='volume',
-    className='dropdown',
-    clearable=False
-    ),
-    html.Div(id='london-stock-color-dropdown-output'),
+    html.Div(id='london-asset-dropdown-output'),
+    # Filter data
+    html.Div('Filter data based on columns',className='allText'),
+    london_filters=[]
+    for col in psql_columns:
+            html.Div(dcc.Dropdown(
+            id='london-asset-filter-dropdown'.format(col),
+            options=[{'label': i, 'value': i} for i in psql_columns],
+            value=psql_columns[0],
+            className='dropdown',
+            clearable=True
+            ),
+            html.Div(id='london-asset-filter-dropdown-output'.format(col)))
     # placeholder for graph
     dcc.Graph(
         id='london-graph'
-    ),
+    )
 ])
+############################################## CALLBACKS #############################################
+############################################## TRADE FIGURE #############################################
+@app.callback(Output('word-graph','figure'),
+[Input('word-freq-dropdown','value'),
+Input('word-freq-time-interval','value'),
+Input('word-freq-top-n','value'),])
