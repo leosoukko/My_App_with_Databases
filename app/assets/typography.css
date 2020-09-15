@@ -18,6 +18,9 @@ body {
 }
 
 .writable_input{
-    width:19%;
+    margin-left:30px;
+    margin-top:5px;
+    margin-bottom:5px;
+    width:11%;
     display: inline-block;
 }

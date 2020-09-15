@@ -26,6 +26,9 @@ psql.connect_to_db()
 query="""SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='{}';""".format(psql.tables[0])
 res=psql.engine.execute(query).fetchall()
 psql_columns=[col[0] for col in res]
+# currencies, types etc for filtering (not used yet)
+psql_currencies=['USD','GBP','JPY','EUR','SEK','RUB']
+
 # connect to mongo
 mongo=mongodb_connection.connect_to_mongodb(config_file)
 mongo.connect_to_db()
@@ -59,19 +62,20 @@ app.layout = html.Div(children=[
     html.Div(id='london-asset-dropdown-output'),
     # date range start
     html.Div("""
-    Filter data with starting and ending dates (format YYYY-MM-DD HH:MM:SS)<br>
-    And with minimum and maximum volumes
+    Filter data with starting and ending dates (format YYYY-MM-DD HH:MM:SS) and with minimum and maximum volumes.
     """,className='allText'),
     dcc.Input(
         id='london-start-date',
+        placeholder='Starting date YYYY-MM-DD HH:MM:SS',
         type='text',
-        value='2020-09-01 00:00:00',
+        value=(datetime.datetime.now()-datetime.timedelta(1)).strftime("%Y-%m-%d %H:%M:%S.%f"),
         className='writable_input',
         debounce=True
     ),
     # date range end
     dcc.Input(
         id='london-end-date',
+        placeholder='Ending date YYYY-MM-DD HH:MM:SS',
         type='text',
         value=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
         className='writable_input',
@@ -80,6 +84,7 @@ app.layout = html.Div(children=[
     # filter based on volume
     dcc.Input(
         id='london-volume-filter-min',
+        placeholder='Minimum volume',
         type='number',
         value=1,
         min=1,
@@ -88,6 +93,7 @@ app.layout = html.Div(children=[
     ),
     dcc.Input(
         id='london-volume-filter-max',
+        placeholder='Maximum volume',
         type='number',
         value=100000,
         min=2,
@@ -110,6 +116,15 @@ Input('london-volume-filter-max','value')])
 
 # update the figure
 def update_london_fig(assetName,startDate,endDate,volumeMin,volumeMax):
+    # avoid errors (also could just make the inputs non-clearable, but then the placeholder wont show)
+    if volumeMin==None:
+        volumeMin=1
+    if volumeMax==None:
+        volumeMax=100000
+    if startDate==None:
+        startDate=(datetime.datetime.now()-datetime.timedelta(1)).strftime("%Y-%m-%d %H:%M:%S.%f")
+    if endDate==None:
+        endDate=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
     # make a query to postgre db
     query="""
     SELECT * FROM "{}" WHERE "tradeTime">='{}' AND "tradeTime"<='{}' AND "volume">={} AND "volume"<={} ORDER BY "tradeTime" DESC;
@@ -124,7 +139,7 @@ def update_london_fig(assetName,startDate,endDate,volumeMin,volumeMax):
     # layout
     fig.update_layout(title=dict(text=assetName,x=0.5,y=0.87))
     #fig.update_layout(legend=dict(yanchor="top",y=0.99,xanchor="left",x=0.01))
-    fig.update_yaxes(title_text='price')
+    fig.update_yaxes(title_text='Price')
     fig.update_xaxes(nticks=31,tickangle=300)
 
     return fig
