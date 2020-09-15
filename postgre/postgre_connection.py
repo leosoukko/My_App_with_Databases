@@ -29,4 +29,6 @@ class connect_to_postgre:
         """
         tables=self.engine.execute(query).fetchall()
         self.tables=[tabl[0] for tabl in tables]
+        print('Connected to PostgreSQL')
         print('Current tables:',self.tables)
+        print('')

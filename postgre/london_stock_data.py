@@ -96,6 +96,6 @@ class london_stock_exchange:
                 # sleep
                 time.sleep(random.uniform(6.66,9.99))
 
-lse=london_stock_exchange('../config/database_config.json',"london_stocks.txt")
+lse=london_stock_exchange('../config/database_config.json',"../postgre/london_stocks.txt")
 lse.get_trade_data()
 

@@ -16,7 +16,7 @@ Create a "config" folder and a "database_config.json" file in it. This file has 
 ### File Descriptions
 
 **app folder**
-- Unfinished
+- Unfinished, Ignore
 - Will be used for visualization
 
 **assets folder**
@@ -50,9 +50,8 @@ Scripts in this folder are run by "python london_stock_data.py"
 
 Scripts in this folder are run by "python controller.py"
 
-**TODO:**
-Also loop through each link and scrape the text.
-
+Image of data in MongoDB
 ![Image of Mongo](assets/mongo_example.png)
 
+Image of data in PostgreSQL
 ![Image of Postgre](assets/postgre_example.png)

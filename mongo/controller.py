@@ -36,5 +36,5 @@ class controller:
             # get and update data
             sitemap_obj.get_and_update_data()
 
-cntrl=controller('sitemaps.txt','../config/database_config.json','news')
+cntrl=controller('../mongo/sitemaps.txt','../config/database_config.json','news')
 cntrl.fetch_data()

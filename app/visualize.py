@@ -1,4 +1,8 @@
-# my files
+# add mongo and postgre to path so that the python files can be imported
+import sys
+sys.path.insert(1, '../mongo')
+sys.path.insert(2, '../postgre')
+
 import word_freqs
 import london_stock_data
 # need to install
@@ -13,7 +17,7 @@ import random
 
 ############################################################### INITIALIZATION #############################################
 # initialize sitemap word freq options
-cols=['title','keywords','tickers']
+cols=['title','tickers']
 # create object which counts the words from keywords.json, do not count yet
 write_file='data/word_freqs.csv'
 read_file='data/keywords.json'

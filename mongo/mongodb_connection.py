@@ -17,6 +17,7 @@ class connect_to_mongodb:
         # connect to db
         self.client=MongoClient(self.config['MongoDB']['URI'])
         self.db=self.client[self.db_name]
+        self.collections=self.db.list_collection_names()
         print('Connected to MongoDB')
-        print('Current collections:',self.db.list_collection_names())
+        print('Current collections:',self.collections)
         print('')
