@@ -3,8 +3,8 @@ import sys
 sys.path.insert(1, '../mongo')
 sys.path.insert(2, '../postgre')
 
-import word_freqs
-import london_stock_data
+import postgre_connection
+import mongodb_connection
 # need to install
 import dash
 import dash_core_components as dcc
@@ -14,166 +14,195 @@ import plotly.graph_objects as go
 import pandas as pd
 # in python
 import random
+import datetime
 
-############################################################### INITIALIZATION #############################################
-# initialize sitemap word freq options
-cols=['title','tickers']
-# create object which counts the words from keywords.json, do not count yet
-write_file='data/word_freqs.csv'
-read_file='data/keywords.json'
-wf=word_freqs.sitemap_word_freq(interval=120,top_n=3,colName='tickers',read_file='data/keywords.json')
-wf.read_data()
-# create object which fetches london stock exchange dat, do not fetch yet
-lon=london_stock_data.londonstockexchange('data/keywords.json')
-lon.get_london_stocks()
-lon_cols=['price','volume','tradeValue']
+############################################## INITIALIZATION #############################################
+config_file='../config/database_config.json'
 
-############################################################### APP #############################################
-# the actual app
-app = dash.Dash(__name__,title='Sitemap Data Viz')
-############################################################### LAYOUT #############################################
+# connect to postgre
+psql=postgre_connection.connect_to_postgre(config_file)
+psql.connect_to_db()
+# function to get all unique options in every table for given column (if many tables, then perhaps a subset could be used)
+def get_unique_values(psql,col):
+    unique_values=[]
+    for tbl in psql.tables:
+        query="""SELECT DISTINCT "{}" FROM "{}";""".format(col,tbl)
+        res=psql.engine.execute(query).fetchall()
+        unique_values+=[vals[0] for vals in res]
+    return list(set(unique_values))
+# use the function for these columns
+psql.types=get_unique_values(psql,'type')
+psql.currencies=get_unique_values(psql,'currency')
+psql.micCodes=get_unique_values(psql,'micCode')
+psql.tradeTypes=get_unique_values(psql,'tradeType')
+
+# connect to mongo
+#mongo=mongodb_connection.connect_to_mongodb(config_file)
+#mongo.connect_to_db()
+
+################################################# APP #############################################
+app = dash.Dash(__name__,title='MyApp')
+################################################ LAYOUT #############################################
 app.layout = html.Div(children=[
     html.Div(children=[
-    html.H1(children='Financial News Sitemaps'),
+    html.H1(children='MyApp'),
 
     html.Div(children='''
-    Most frequent words used in Reuters, MarketWatch and Financial Times sitemaps are visualized in the first figure.
-    One can examine either titles, keywords or tickers aggregated on a given time interval. N most common results can be shown.
+    This App shows all trades gathered in PostgreSQL database for given asset. Multiple different filters for the data are availble.
     '''),
     html.Div(children='''
-    In the second figure trades of a stock in London Stock Exchange (that was mentioned in the sitemaps) are shown with some articles
-    related to it. One can choose between different stocks and choose which attribute is on the y-axis or as the color. Hovering
-    over star shaped markers reveal the article titles.
+    Next step might be to query MongoDB for news articles related to the asset, but most likely there aren't many articles.
     '''),
     ],
     className='allText'
     ),
-############################################################### FIGURE 1 #############################################
-    # dropdown to choose what data is in the sitemap word figure
-    html.Div('Choose tag shown',className='allText'),
-    dcc.Dropdown(
-    id='word-freq-dropdown',
-    options=[{'label': i, 'value': i} for i in cols],
-    value='tickers',
-    className='dropdown',
-    clearable=False
-    ),
-    html.Div(id='word-freq-dropdown-output'),
-    # choose aggregation time
-    html.Div('Time interval to aggregate articles (minutes)',className='allText'),
-    dcc.Input(
-        id='word-freq-time-interval',
-        type='number',
-        value=120,
-        step=10,
-        className='writable_input'
-    ),
-    # choose top n
-    html.Div('N most common words shown',className='allText'),
-    dcc.Input(
-        id='word-freq-top-n',
-        type='number',
-        value=3,
-        className='writable_input'
-    ),
-    # placeholder for graph
-    dcc.Graph(
-        id='word-graph'
-    ),
-############################################################### FIGURE 2 #############################################
+############################################## TRADE FIGURE #############################################
     # dropdown to choose which company is in the london figure
-    html.Div('Choose company shown',className='allText'),
+    html.Div('Choose Equity/ETF shown',className='allText'),
     dcc.Dropdown(
-    id='london-stock-dropdown',
-    options=[{'label': i, 'value': i} for i in lon.lon_tickNames],
-    value=lon.stockName,
+    id='london-asset-dropdown',
+    options=[{'label': i, 'value': i} for i in psql.tables],
+    value=psql.tables[0],
     className='dropdown',
     clearable=False
     ),
-    html.Div(id='london-stock-dropdown-output'),
-    # choose y-axis data shown
-    html.Div('Choose attribute shown on y-axis',className='allText'),
-    dcc.Dropdown(
-    id='london-stock-column-dropdown',
-    options=[{'label': i, 'value': i} for i in lon_cols],
-    value='price',
-    className='dropdown',
-    clearable=False
+    # date range start
+    html.Div("""
+    Filter data with starting and ending dates (format YYYY-MM-DD HH:MM:SS) and with minimum and maximum volumes.
+    """,className='allText'),
+    dcc.Input(
+        id='london-start-date',
+        placeholder='Starting date YYYY-MM-DD HH:MM:SS',
+        type='text',
+        value=(datetime.datetime.now()-datetime.timedelta(1)).strftime("%Y-%m-%d %H:%M:%S.%f"),
+        className='writable_input',
+        debounce=True
     ),
-    html.Div(id='london-stock-column-dropdown-output'),
-    # choose color data
-    html.Div('Choose attribute shown as color',className='allText'),
-    dcc.Dropdown(
-    id='london-stock-color-dropdown',
-    options=[{'label': i, 'value': i} for i in lon_cols],
-    value='volume',
-    className='dropdown',
-    clearable=False
+    # date range end
+    dcc.Input(
+        id='london-end-date',
+        placeholder='Ending date YYYY-MM-DD HH:MM:SS',
+        type='text',
+        value=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
+        className='writable_input',
+        debounce=True
     ),
-    html.Div(id='london-stock-color-dropdown-output'),
+    # filter based on volume
+    dcc.Input(
+        id='london-volume-filter-min',
+        placeholder='Minimum volume',
+        type='number',
+        value=1,
+        min=1,
+        className='writable_input',
+        debounce=True
+    ),
+    dcc.Input(
+        id='london-volume-filter-max',
+        placeholder='Maximum volume',
+        type='number',
+        value=100000,
+        min=2,
+        className='writable_input',
+        debounce=True
+    ),
+    # dropdown to filter by currency
+    html.Div('Filter data by currency',className='allText'),
+    dcc.Dropdown(
+    id='london-currency-dropdown',
+    options=[{'label': i, 'value': i} for i in psql.currencies],
+    value=psql.currencies,
+    className='dropdown',
+    clearable=False,
+    multi=True
+    ),
+    # dropdown to filter by type
+    html.Div('Filter data by type',className='allText'),
+    dcc.Dropdown(
+    id='london-type-dropdown',
+    options=[{'label': i, 'value': i} for i in psql.types],
+    value=psql.types,
+    className='dropdown',
+    clearable=False,
+    multi=True
+    ),
+    # dropdown to filter by currency
+    html.Div('Filter data by Mic-Codes',className='allText'),
+    dcc.Dropdown(
+    id='london-micCode-dropdown',
+    options=[{'label': i, 'value': i} for i in psql.micCodes],
+    value=psql.micCodes,
+    className='dropdown',
+    clearable=False,
+    multi=True
+    ),
+    # dropdown to filter by currency
+    html.Div('Filter data by TradeTypes',className='allText'),
+    dcc.Dropdown(
+    id='london-tradeType-dropdown',
+    options=[{'label': i, 'value': i} for i in psql.tradeTypes],
+    value=psql.tradeTypes,
+    className='dropdown',
+    clearable=False,
+    multi=True
+    ),
     # placeholder for graph
     dcc.Graph(
         id='london-graph'
-    ),
+    )
 ])
-############################################################### CALLBACKS #############################################
-############################################################### FIGURE 1 #############################################
-@app.callback(Output('word-graph','figure'),
-[Input('word-freq-dropdown','value'),
-Input('word-freq-time-interval','value'),
-Input('word-freq-top-n','value'),])
-# update the figure based on chosen data type
-def update_word_fig(colName,interval,top_n):
-    # count the word frequencies with given params
-    wf.word_frequency(interval,top_n,colName)
-    # get the data
-    data=wf.df
-    # the actual figure
-    fig = go.Figure()
-    col_ind=1
-    i=1
-    # loop through all columns that hold values (every other column holds values, every other holds keyname)
-    while col_ind<=data.shape[1]:
-        # add some noise so that words with same freqs will be apart
-        y_rand=random.uniform(-0.15,0.15)
-        # create scatter
-        fig.add_trace(go.Scatter(x=data.index,y=data.iloc[:,col_ind]+y_rand,name='Top {}'.format(i),mode='markers+text',
-        text=data.iloc[:,col_ind-1],textposition="top center",hoverinfo='x+text'))
-        # update value columns and iteration number
-        col_ind+=2
-        i+=1
-    # layout
-    fig.update_layout(title=dict(text='Sitemaps: Most frequent words',x=0.45,y=0.87))
-    fig.update_yaxes(title_text='Frequency',nticks=20)
-    fig.update_xaxes(nticks=31,tickangle=300)
-
-    return fig
-
-############################################################### FIGURE 2 #############################################
+############################################## CALLBACKS #############################################
+############################################## TRADE FIGURE #############################################
 @app.callback(Output('london-graph','figure'),
-[Input('london-stock-dropdown','value'),
-Input('london-stock-column-dropdown','value'),
-Input('london-stock-color-dropdown','value'),])
+[Input('london-asset-dropdown','value'),
+Input('london-start-date','value'),
+Input('london-end-date','value'),
+Input('london-volume-filter-min','value'),
+Input('london-volume-filter-max','value'),
+Input('london-currency-dropdown','value'),
+Input('london-type-dropdown','value'),
+Input('london-micCode-dropdown','value'),
+Input('london-tradeType-dropdown','value')])
+
 # update the figure
-def update_london_fig(stockName,colName,colorName):
-    # get trades for this stock
-    lon.get_trade_data(stockName)
-    # data
-    df=lon.df
+def update_london_fig(assetName,startDate,endDate,volumeMin,volumeMax,currency,TYPE,micCode,tradeType):
+    # avoid errors from empty inputs (also could just make the inputs non-clearable, but then the placeholder wont show)
+    if volumeMin==None:
+        volumeMin=1
+    if volumeMax==None:
+        volumeMax=100000
+    if startDate==None:
+        startDate=(datetime.datetime.now()-datetime.timedelta(1)).strftime("%Y-%m-%d %H:%M:%S.%f")
+    if endDate==None:
+        endDate=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+    
+    # join the options for SQL query
+    currency="','".join(currency)
+    TYPE="','".join(TYPE)
+    micCode="','".join(micCode)
+    tradeType="','".join(tradeType)
+
+    # make a query to postgre db
+    query="""
+    SELECT * FROM "{}" WHERE "tradeTime">='{}' AND "tradeTime"<='{}' AND "volume">={} AND "volume"<={} AND "currency" IN ('{}')
+    AND "type" IN ('{}') AND "micCode" IN ('{}') AND "tradeType" IN ('{}') ORDER BY "tradeTime" DESC;
+    """.format(assetName,startDate,endDate,volumeMin,volumeMax,currency,TYPE,micCode,tradeType)
+    df=pd.read_sql(query,con=psql.engine,index_col=['tradeTime'])
+    df.index=pd.to_datetime(df.index)
+
     # make the figure
-    fig = go.Figure(go.Scattergl(x=df.index,y=df[colName],marker_color=df[colorName],name=colName,mode='markers',
-    marker=dict(colorscale='Bluered',showscale=True),text=df[colorName],
-    hovertemplate='%{y}'+'<br>time : %{x}<br>'+colorName+' : %{text}'))
-    # add the articles of the stock in the figure
-    fig.add_trace(go.Scatter(x=lon.lon_news_df.index,y=[df[colName].min()]*lon.lon_news_df.shape[0],
-    text=lon.lon_news_df['link'],hoverinfo='x+text',mode='markers',marker_symbol='star',name='Article'))
+    fig = go.Figure(go.Scattergl(x=df.index,y=df['price'],marker_color=df['volume'],mode='markers',
+    marker=dict(colorscale='Bluered',showscale=True),name='Trades',
+    text=df['volume'].astype(str)+'<br>type: '+df['type'].astype(str)+'<br>currency: '+df['currency'].astype(str)+'<br>micCode: '+df['micCode'].astype(str)+'<br>tradeType: '+df['tradeType'].astype(str),
+    hovertemplate='price: %{y}'+'<br>time : %{x}<br>volume: %{text}'))
     # layout
-    fig.update_layout(title=dict(text=stockName,x=0.5,y=0.87),hovermode='x unified')
-    fig.update_layout(legend=dict(yanchor="top",y=0.99,xanchor="left",x=0.01))
-    fig.update_yaxes(title_text=colName)
+    fig.update_layout(title=dict(text=assetName,x=0.5,y=0.87))
+    #fig.update_layout(legend=dict(yanchor="top",y=0.99,xanchor="left",x=0.01))
+    fig.update_yaxes(title_text='Price')
     fig.update_xaxes(nticks=31,tickangle=300)
 
     return fig
+
 ############################################################### DEBUG #############################################
 if __name__ == '__main__':
     app.run_server(debug=True)
