@@ -22,19 +22,13 @@ config_file='../config/database_config.json'
 # connect to postgre
 psql=postgre_connection.connect_to_postgre(config_file)
 psql.connect_to_db()
-# function to get all unique options in every table for given column (if many tables, then perhaps a subset could be used)
-def get_unique_values(psql,col):
-    unique_values=[]
-    for tbl in psql.tables:
-        query="""SELECT DISTINCT "{}" FROM "{}";""".format(col,tbl)
-        res=psql.engine.execute(query).fetchall()
-        unique_values+=[vals[0] for vals in res]
-    return list(set(unique_values))
-# use the function for these columns
-psql.types=get_unique_values(psql,'type')
-psql.currencies=get_unique_values(psql,'currency')
-psql.micCodes=get_unique_values(psql,'micCode')
-psql.tradeTypes=get_unique_values(psql,'tradeType')
+# function to get unique values for given asset and column. Will be used to interactively change filtering options for different assets
+def get_unique_values(tbl,col):
+    query="""SELECT DISTINCT "{}" FROM "{}";""".format(col,tbl)
+    res=psql.engine.execute(query).fetchall()
+    unique_values=[vals[0] for vals in res]
+    unique_options=[{'label': i, 'value': i} for i in unique_values]
+    return unique_values,unique_options
 
 # connect to mongo
 #mongo=mongodb_connection.connect_to_mongodb(config_file)
@@ -69,6 +63,7 @@ app.layout = html.Div(children=[
     # date range start
     html.Div("""
     Filter data with starting and ending dates (format YYYY-MM-DD HH:MM:SS) and with minimum and maximum volumes.
+    Negative volume refers to cancelled trade.
     """,className='allText'),
     dcc.Input(
         id='london-start-date',
@@ -92,8 +87,6 @@ app.layout = html.Div(children=[
         id='london-volume-filter-min',
         placeholder='Minimum volume',
         type='number',
-        value=1,
-        min=1,
         className='writable_input',
         debounce=True
     ),
@@ -101,8 +94,6 @@ app.layout = html.Div(children=[
         id='london-volume-filter-max',
         placeholder='Maximum volume',
         type='number',
-        value=100000,
-        min=2,
         className='writable_input',
         debounce=True
     ),
@@ -110,8 +101,6 @@ app.layout = html.Div(children=[
     html.Div('Filter data by currency',className='allText'),
     dcc.Dropdown(
     id='london-currency-dropdown',
-    options=[{'label': i, 'value': i} for i in psql.currencies],
-    value=psql.currencies,
     className='dropdown',
     clearable=False,
     multi=True
@@ -120,8 +109,6 @@ app.layout = html.Div(children=[
     html.Div('Filter data by type',className='allText'),
     dcc.Dropdown(
     id='london-type-dropdown',
-    options=[{'label': i, 'value': i} for i in psql.types],
-    value=psql.types,
     className='dropdown',
     clearable=False,
     multi=True
@@ -130,8 +117,6 @@ app.layout = html.Div(children=[
     html.Div('Filter data by Mic-Codes',className='allText'),
     dcc.Dropdown(
     id='london-micCode-dropdown',
-    options=[{'label': i, 'value': i} for i in psql.micCodes],
-    value=psql.micCodes,
     className='dropdown',
     clearable=False,
     multi=True
@@ -140,8 +125,6 @@ app.layout = html.Div(children=[
     html.Div('Filter data by TradeTypes',className='allText'),
     dcc.Dropdown(
     id='london-tradeType-dropdown',
-    options=[{'label': i, 'value': i} for i in psql.tradeTypes],
-    value=psql.tradeTypes,
     className='dropdown',
     clearable=False,
     multi=True
@@ -152,6 +135,29 @@ app.layout = html.Div(children=[
     )
 ])
 ############################################## CALLBACKS #############################################
+###################################### DROPDOWNS BASED ON ASSET #############################################
+@app.callback(
+[Output('london-volume-filter-min','value'),Output('london-volume-filter-max','value'),
+Output('london-currency-dropdown','options'),Output('london-currency-dropdown','value'),
+Output('london-type-dropdown','options'),Output('london-type-dropdown','value'),
+Output('london-micCode-dropdown','options'),Output('london-micCode-dropdown','value'),
+Output('london-tradeType-dropdown','options'),Output('london-tradeType-dropdown','value')],
+[Input('london-asset-dropdown','value')])
+
+def update_options(assetName):
+    # use the function in initialization to get unique values for the columns in dash format
+    type_vals,type_options=get_unique_values(assetName,'type')
+    currency_vals,currency_options=get_unique_values(assetName,'currency')
+    micCode_vals,micCode_options=get_unique_values(assetName,'micCode')
+    tradeType_vals,tradeType_options=get_unique_values(assetName,'tradeType')
+    # get min and max volumes
+    query="""SELECT MIN("volume") FROM "{}";""".format(assetName)
+    min_vol=psql.engine.execute(query).fetchall()[0][0]
+    query="""SELECT MAX("volume") FROM "{}";""".format(assetName)
+    max_vol=psql.engine.execute(query).fetchall()[0][0]
+
+    return min_vol,max_vol,currency_options,currency_vals,type_options,type_vals,micCode_options,micCode_vals,tradeType_options,tradeType_vals
+
 ############################################## TRADE FIGURE #############################################
 @app.callback(Output('london-graph','figure'),
 [Input('london-asset-dropdown','value'),
@@ -203,6 +209,6 @@ def update_london_fig(assetName,startDate,endDate,volumeMin,volumeMax,currency,T
 
     return fig
 
-############################################################### DEBUG #############################################
+######################################################### DEBUG #############################################
 if __name__ == '__main__':
     app.run_server(debug=True)
