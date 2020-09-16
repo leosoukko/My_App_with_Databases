@@ -58,11 +58,14 @@ Scripts in this folder are run by "python london_stock_data.py"
 
 Scripts in this folder are run by "python controller.py"
 
-Example image of data in MongoDB<br>
+Example image of data in MongoDB
+
 ![Image of Mongo](assets/mongo_example.png)
 
-Example image of data in PostgreSQL<br>
+Example image of data in PostgreSQL
+
 ![Image of Postgre](assets/postgre_example.png)
 
-Example image of the App<br>
+Example image of the App
+
 ![Image of Postgre](assets/app_example.png)
