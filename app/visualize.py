@@ -23,8 +23,8 @@ config_file='../config/database_config.json'
 psql=postgre_connection.connect_to_postgre(config_file)
 psql.connect_to_db()
 # function to get unique values for given asset and column. Will be used to interactively change filtering options for different assets
-def get_unique_values(tbl,col):
-    query="""SELECT DISTINCT "{}" FROM "{}";""".format(col,tbl)
+def get_unique_values(tbl,col,start,end):
+    query="""SELECT DISTINCT "{}" FROM "{}" WHERE "tradeTime">='{}' AND "tradeTime"<='{}';""".format(col,tbl,start,end)
     res=psql.engine.execute(query).fetchall()
     unique_values=[vals[0] for vals in res]
     unique_options=[{'label': i, 'value': i} for i in unique_values]
@@ -43,10 +43,12 @@ app.layout = html.Div(children=[
 
     html.Div(children='''
     This App shows all trades gathered in PostgreSQL database for given asset. Multiple different filters for the data are availble.
+    Color of the marker refers to trade volume.
     '''),
     html.Div(children='''
     Next step might be to query MongoDB for news articles related to the asset, but most likely there aren't many articles.
     '''),
+    html.Br()
     ],
     className='allText'
     ),
@@ -60,28 +62,21 @@ app.layout = html.Div(children=[
     className='dropdown',
     clearable=False
     ),
+    # date picker
+    html.Div('Choose starting and ending dates (afterwards you can zoom more in the figure if wanted)',className='allText'),
+    dcc.DatePickerRange(
+        id='london-date-picker-range',
+        start_date=datetime.datetime.now().date(),
+        end_date=(datetime.datetime.now() + datetime.timedelta(1)).date(),
+        clearable=False,
+        display_format ='YYYY-MM-DD',
+        className='dropdown'
+    ),
+    html.Div(id='london-date-picker-range-output'),
     # date range start
     html.Div("""
-    Filter data with starting and ending dates (format YYYY-MM-DD HH:MM:SS) and with minimum and maximum volumes.
-    Negative volume refers to cancelled trade.
+    Filter data with minimum and maximum volumes. Negative volume refers to cancelled trade.
     """,className='allText'),
-    dcc.Input(
-        id='london-start-date',
-        placeholder='Starting date YYYY-MM-DD HH:MM:SS',
-        type='text',
-        value=(datetime.datetime.now()-datetime.timedelta(1)).strftime("%Y-%m-%d %H:%M:%S.%f"),
-        className='writable_input',
-        debounce=True
-    ),
-    # date range end
-    dcc.Input(
-        id='london-end-date',
-        placeholder='Ending date YYYY-MM-DD HH:MM:SS',
-        type='text',
-        value=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
-        className='writable_input',
-        debounce=True
-    ),
     # filter based on volume
     dcc.Input(
         id='london-volume-filter-min',
@@ -142,18 +137,20 @@ Output('london-currency-dropdown','options'),Output('london-currency-dropdown','
 Output('london-type-dropdown','options'),Output('london-type-dropdown','value'),
 Output('london-micCode-dropdown','options'),Output('london-micCode-dropdown','value'),
 Output('london-tradeType-dropdown','options'),Output('london-tradeType-dropdown','value')],
-[Input('london-asset-dropdown','value')])
+[Input('london-asset-dropdown','value'),
+Input('london-date-picker-range','start_date'),
+Input('london-date-picker-range','end_date'),])
 
-def update_options(assetName):
+def update_options(assetName,start,end):
     # use the function in initialization to get unique values for the columns in dash format
-    type_vals,type_options=get_unique_values(assetName,'type')
-    currency_vals,currency_options=get_unique_values(assetName,'currency')
-    micCode_vals,micCode_options=get_unique_values(assetName,'micCode')
-    tradeType_vals,tradeType_options=get_unique_values(assetName,'tradeType')
+    type_vals,type_options=get_unique_values(assetName,'type',start,end)
+    currency_vals,currency_options=get_unique_values(assetName,'currency',start,end)
+    micCode_vals,micCode_options=get_unique_values(assetName,'micCode',start,end)
+    tradeType_vals,tradeType_options=get_unique_values(assetName,'tradeType',start,end)
     # get min and max volumes
-    query="""SELECT MIN("volume") FROM "{}";""".format(assetName)
+    query="""SELECT MIN("volume") FROM "{}" WHERE "tradeTime">='{}' AND "tradeTime"<='{}';""".format(assetName,start,end)
     min_vol=psql.engine.execute(query).fetchall()[0][0]
-    query="""SELECT MAX("volume") FROM "{}";""".format(assetName)
+    query="""SELECT MAX("volume") FROM "{}" WHERE "tradeTime">='{}' AND "tradeTime"<='{}';""".format(assetName,start,end)
     max_vol=psql.engine.execute(query).fetchall()[0][0]
 
     return min_vol,max_vol,currency_options,currency_vals,type_options,type_vals,micCode_options,micCode_vals,tradeType_options,tradeType_vals
@@ -161,8 +158,8 @@ def update_options(assetName):
 ############################################## TRADE FIGURE #############################################
 @app.callback(Output('london-graph','figure'),
 [Input('london-asset-dropdown','value'),
-Input('london-start-date','value'),
-Input('london-end-date','value'),
+Input('london-date-picker-range','start_date'),
+Input('london-date-picker-range','end_date'),
 Input('london-volume-filter-min','value'),
 Input('london-volume-filter-max','value'),
 Input('london-currency-dropdown','value'),
@@ -177,10 +174,6 @@ def update_london_fig(assetName,startDate,endDate,volumeMin,volumeMax,currency,T
         volumeMin=1
     if volumeMax==None:
         volumeMax=100000
-    if startDate==None:
-        startDate=(datetime.datetime.now()-datetime.timedelta(1)).strftime("%Y-%m-%d %H:%M:%S.%f")
-    if endDate==None:
-        endDate=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
     
     # join the options for SQL query
     currency="','".join(currency)
