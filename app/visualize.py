@@ -1,7 +1,9 @@
 # add mongo and postgre to path so that the python files can be imported
 import sys
-sys.path.insert(1, '../mongo')
-sys.path.insert(2, '../postgre')
+from pathlib import Path
+root_dir_of_app=str(Path(__file__).resolve().parents[1])
+sys.path.insert(1, root_dir_of_app+'\mongo')
+sys.path.insert(2, root_dir_of_app+'\postgre')
 
 import postgre_connection
 import mongodb_connection
@@ -17,7 +19,7 @@ import random
 import datetime
 
 ############################################## INITIALIZATION #############################################
-config_file='../config/database_config.json'
+config_file=root_dir_of_app+"\config\database_config.json"
 
 # connect to postgre
 psql=postgre_connection.connect_to_postgre(config_file)

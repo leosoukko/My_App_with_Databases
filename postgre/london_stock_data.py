@@ -10,6 +10,7 @@ from io import StringIO
 import datetime
 import time
 import random
+from pathlib import Path
 
 class london_stock_exchange:
     def __init__(self,config_file,stock_file):
@@ -96,6 +97,9 @@ class london_stock_exchange:
                 # sleep
                 time.sleep(random.uniform(6.66,9.99))
 
-lse=london_stock_exchange('../config/database_config.json',"../postgre/london_stocks.txt")
+# get correct directiories where ever the script is run from
+root_dir_of_app=str(Path(__file__).resolve().parents[1])
+parent_dir=str(Path(__file__).resolve().parents[0])
+# use the object
+lse=london_stock_exchange(root_dir_of_app+'\config\database_config.json',parent_dir+"\london_stocks.txt")
 lse.get_trade_data()
-

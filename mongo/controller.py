@@ -6,6 +6,7 @@ import pandas as pd
 # in python
 import sys
 import json
+from pathlib import Path
 
 class controller:
     def __init__(self,sitemap_file,config_file):
@@ -35,5 +36,8 @@ class controller:
             # get and update data
             sitemap_obj.get_and_update_data()
 
-cntrl=controller('../mongo/sitemaps.txt','../config/database_config.json')
+# get correct directiories where ever the script is run from
+root_dir_of_app=str(Path(__file__).resolve().parents[1])
+# create object
+cntrl=controller(root_dir_of_app+'\mongo\sitemaps.txt',root_dir_of_app+'\config\database_config.json')
 cntrl.fetch_data()
