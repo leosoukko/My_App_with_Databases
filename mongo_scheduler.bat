@@ -1,1 +1,0 @@
-"C:\Users\leoso\OneDrive\Tiedostot\Datakokeiluja\MyVenvs\finance_database\Scripts\python.exe" "C:\Users\leoso\OneDrive\Tiedostot\Datakokeiluja\finance_sitemap_news\Database_integration\mongo\controller.py"
